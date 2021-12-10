@@ -35,9 +35,13 @@ $data = explode(",", $str);
 switch($data[0])
 {
     case "insertInitial":
-        $orm = new ORMController();
-        $orm->initialData();
-        echo 'Initial data for Service ans State inserted';
+        try{
+            $orm = new ORMController();
+            $orm->initialData();
+            echo 'Initial data for Service ans State inserted';
+        }catch(Exception $e){
+            echo "data already inserted";
+        }
         break;
     case "createTicket":
         if (isset($data[1]) && isset($data[2]) && isset($data[3])) {
@@ -52,7 +56,11 @@ switch($data[0])
                 ]);
                 echo 'Ticket created';
             }catch(Exception $e){
-                echo $e->getMessage();
+                $dataToSend= json_encode([
+                    "success" => false,
+                    "message" => "Db error"
+                ], JSON_PRETTY_PRINT);
+                echo $dataToSend;
             }
         } else {
             echo 'Missing args';
@@ -67,10 +75,22 @@ switch($data[0])
             try{
                 $orm = new ORMController();
                 $ticket = $orm->getTargetByField('ticket','title', $data[1]);
-                $dataToSend = json_encode($ticket, JSON_PRETTY_PRINT);
-                echo $dataToSend;
+                if ( $ticket != false && count($ticket) > 0) {
+                    $dataToSend = json_encode($ticket, JSON_PRETTY_PRINT);
+                    echo $dataToSend;
+                } else {
+                    $dataToSend = json_encode([
+                        "success" => false,
+                        "message" => "No ticket found"
+                    ], JSON_PRETTY_PRINT);
+                    echo $dataToSend;
+                }
             }catch(Exception $e){
-                echo $e->getMessage();
+                $dataToSend= json_encode([
+                    "success" => false,
+                    "message" => "Ticket not found"
+                ], JSON_PRETTY_PRINT);
+                echo $dataToSend;
             }
         } else {
             echo 'Missing args';
@@ -84,10 +104,21 @@ switch($data[0])
         try{
             $orm = new ORMController();
             $tickets = $orm->getAll('ticket');
-            $dataToSend = json_encode($tickets, JSON_PRETTY_PRINT);
-            echo $dataToSend;
+            if ( $tickets != false && count($tickets) > 0) {
+                $dataToSend = json_encode($tickets, JSON_PRETTY_PRINT);
+                echo $dataToSend;
+            } else {
+                $dataToSend = json_encode([
+                    "success" => false,
+                    "message" => "No ticket found"
+                ], JSON_PRETTY_PRINT);
+                echo $dataToSend;
+            }
         }catch(Exception $e){
-            echo $e->getMessage();
+            $dataToSend = json_encode([
+                "success" => false,
+                "message" => "No ticket found"
+            ], JSON_PRETTY_PRINT);
         }
         break;
     case "createComment":
@@ -95,23 +126,33 @@ switch($data[0])
             try{
                 $orm = new ORMController();
                 $ticket = $orm->getTargetByField('ticket','title', $data[2]);
-                $orm->insertData("comment", [
-                    "texte" => $data[1],
-                    "ticket_idticket" => $ticket['idticket']
-                ]);
-                $dataToSend = json_encode([
-                    "success" => true,
-                ]);
-                echo $dataToSend;
+                if ( $ticket != false && count($ticket) > 0) {
+                    $orm->insertData("comment", [
+                        "texte" => $data[1],
+                        "ticket_idticket" => $ticket['idticket'],
+                    ]);
+                    echo 'Comment created';
+                } else {
+                    $dataToSend = json_encode([
+                        "success" => false,
+                        "message" => "No ticket found"
+                    ], JSON_PRETTY_PRINT);
+                    echo $dataToSend;
+                }
             }catch(Exception $e){
-                echo $e->getMessage();
+                $dataToSend = json_encode([
+                    "success" => false,
+                    "error" => "Bad request"
+                ], JSON_PRETTY_PRINT);
+
+                echo $dataToSend;
             }
         } else {
             echo 'Missing args';
             echo "\n";
             echo "  Available :";
             echo "\n";
-            echo "      createComment {text} {ticket title}                //create a new comment";
+            echo "      createComment {texte} {ticket title}                //create a new comment";
         }
         break;
     case "getComments":
@@ -119,12 +160,24 @@ switch($data[0])
             try{
                 $orm = new ORMController();
                 $ticket = $orm->getTargetByField('ticket','title', $data[1]);
-                $comments = $orm->getAll('comment', ['ticket_idticket' => $ticket[0]['id']]);
-                $dataToSend = json_encode($comments);
 
-                echo $dataToSend;
+                $comments = $orm->getAll('comment', ['ticket_idticket' => $ticket['idticket']]);
+                if ($comments != false && count($comments) > 0) {
+                    $dataToSend = json_encode($comments, JSON_PRETTY_PRINT);
+                    echo $dataToSend;
+                } else {
+                    $dataToSend = json_encode([
+                        "success" => false,
+                        "message" => "No comments found"
+                    ], JSON_PRETTY_PRINT);
+                    echo $dataToSend;
+                }
             }catch(Exception $e){
-                echo $e->getMessage();
+                $dataToSend = json_encode([
+                    "success" => false,
+                    "message" => $e->getMessage()
+                ], JSON_PRETTY_PRINT);
+                echo $dataToSend;
             }
         } else {
             echo 'Missing args';
@@ -138,27 +191,40 @@ switch($data[0])
         try{
             $orm = new ORMController();
             $ticket = $orm->getTargetByField('ticket','title', $data[1]);
-            $myfile = fopen("SaveTicket.json", "w");
-            $txt = [
-                "title" => $ticket['title'],
-                "description" => $ticket['description'],
-                "date" => $ticket['date'],
-                "comments" => []
-            ];
-            $comments = $orm->getAll('comment', ['ticket_idticket' => $ticket['idticket']]);
-            foreach($comments as $comment){
-
-                $txt['comments'][] = [
-                    "text" => $comment['texte'],
-                    "date" => $comment['date']
+            if ( $ticket != false && count($ticket) > 0) {
+                $myfile = fopen("SaveTicket.json", "w");
+                $txt = [
+                    "title" => $ticket['title'],
+                    "description" => $ticket['description'],
+                    "date" => $ticket['date'],
+                    "comments" => []
                 ];
+                $comments = $orm->getAll('comment', ['ticket_idticket' => $ticket['idticket']]);
+                if($comments != false && count($comments) > 0){
+                    foreach ($comments as $comment) {
+                        $txt['comments'][] = [
+                            "texte" => $comment['texte'],
+                            "date" => $comment['date']
+                        ];
+                    }
+                }
+                fwrite($myfile, json_encode($txt, JSON_PRETTY_PRINT));
+                fclose($myfile);
+                echo 'Ticket saved';
+            } else {
+                $dataToSend = json_encode([
+                    "success" => false,
+                    "message" => "No ticket found"
+                ], JSON_PRETTY_PRINT);
+                echo $dataToSend;
             }
-
-            fwrite($myfile, json_encode($txt, JSON_PRETTY_PRINT));
-            fclose($myfile);
-            echo 'Ticket saved';
+            
         }catch(Exception $e){
-            echo $e->getMessage();
+            $dataToSend = json_encode([
+                "success" => false,
+                "message" => "Ticket not found"
+            ], JSON_PRETTY_PRINT);
+            echo $dataToSend;
         }
         break;
     default:
