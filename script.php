@@ -17,6 +17,8 @@ function displayCommand(){
     echo "\n";
     echo "      getComments, {ticket title}                              //get all comments";
     echo "\n";
+    echo "      saveTicket, {ticket title}                              //save the ticket in a file";
+    echo "\n";
     exit;
 }
 
