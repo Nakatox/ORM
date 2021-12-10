@@ -5,6 +5,9 @@
 
 Take the content of databaseSetup.sql and run it to your MySql SQL section.
 
+#### Insert connexion information
+
+go to 'config/config.php' and change the informations by yours
 
 ## Usage
 
