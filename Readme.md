@@ -29,9 +29,8 @@ php script.php getTicket {the title}
 
 ## All command Available
 
-```js
+```
 php script.php insertInitial                                        //! just one time
-
 php script.php createTicket, {title}, {description}, {section}      //create a new ticket
 php script.php getTicket, {ticket title}                            //get a ticket
 php script.php getTickets                                           //get all tickets
